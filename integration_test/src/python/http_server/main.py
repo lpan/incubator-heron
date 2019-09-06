@@ -21,14 +21,48 @@ import sys
 import tornado.ioloop
 import tornado.escape
 import tornado.web
+from collections import defaultdict
 
 from heron.common.src.python.utils import log
 
 RESULTS_DIRECTORY = "results"
 
+
 class MainHandler(tornado.web.RequestHandler):
   def get(self):
     self.write("Heron integration-test helper")
+
+
+class WriteIncrementalFileHandler(tornado.web.RequestHandler):
+  def initialize(self, incremental_results_map):
+    self.incremental_results_map = incremental_results_map
+
+  def post(self, fileName):
+    # data = tornado.escape.json_decode(self.request.body)
+    self.incremental_results_map[fileName].append(self.request.body)
+    self.write("Partial results recorded for " + fileName + " successfully")
+
+
+class FlushIncrementalFileHandler(tornado.web.RequestHandler):
+  def initialize(self, incremental_results_map):
+    self.incremental_results_map = incremental_results_map
+
+  def post(self, fileName):
+    jsonFilePath = RESULTS_DIRECTORY + "/" + fileName + ".json"
+
+    with open(jsonFilePath, "w") as jsonFile:
+      try:
+        data = self.incremental_results_map[fileName]
+        jsonFile.write(tornado.escape.json_encode(data))
+        self.write("Results written to " + jsonFilePath + " successfully")
+      except ValueError as e:
+        logging.error("ValueError: " + str(e))
+        self.clear()
+        self.set_status(400)
+        self.finish("Invalid Json")
+      finally:
+        self.incremental_results_map[fileName] = []
+
 
 class FileHandler(tornado.web.RequestHandler):
   def get(self, fileName):
@@ -118,6 +152,7 @@ class StateResultHandler(tornado.web.RequestHandler):
     else:
       raise tornado.web.HTTPError(status_code=404, log_message="Invalid key %s" % key)
 
+
 def main():
   '''
   Runs a tornado http server that listens for any
@@ -132,11 +167,26 @@ def main():
   state_map = {}
   # for instance states in stateful processing
   state_result_map = {}
+
+  incremental_results_map = defaultdict(lambda: [])
+
   application = tornado.web.Application([
     (r"/", MainHandler),
+
     (r"^/results/([a-zA-Z0-9_-]+$)", FileHandler),
+
+    (r"^/results/incremental/write/([a-zA-Z0-9_-]+$)",
+     WriteIncrementalFileHandler,
+     dict(incremental_results_map=incremental_results_map)),
+
+    (r"^/results/incremental/flush/([a-zA-Z0-9_-]+$)",
+     FlushIncrementalFileHandler,
+     dict(incremental_results_map=incremental_results_map)),
+
     (r"^/state", MemoryMapGetAllHandler, dict(state_map=state_map)),
+
     (r"^/state/([a-zA-Z0-9_-]+$)", MemoryMapHandler, dict(state_map=state_map)),
+
     (r"^/stateResults/([a-zA-Z0-9_-]+$)", StateResultHandler, dict(result_map=state_result_map)),
   ])
 
@@ -153,6 +203,7 @@ def main():
   logging.info("Starting server at port " + str(port))
   application.listen(port)
   tornado.ioloop.IOLoop.instance().start()
+
 
 if __name__ == '__main__':
   main()
