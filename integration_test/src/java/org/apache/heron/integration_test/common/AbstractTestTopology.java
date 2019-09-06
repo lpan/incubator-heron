@@ -45,10 +45,12 @@ public abstract class AbstractTestTopology {
   private static final String STATE_UPDATE_TOKEN = "state_server_update_token";
   private static final String SPOUT_WRAPPER_TOKEN = "spout_wrapper_token";
 
+  protected final String topologyName;
+  protected final String httpServerResultsBaseUrl;
+
   private final CommandLine cmd;
   private final String httpServerResultsUrl;
   private final String httpServerStateUrl;
-  private final String topologyName;
   private final String stateUpdateToken;
   private final TestTopologyBuilder.SpoutWrapperType spoutWrapperType;
 
@@ -66,8 +68,9 @@ public abstract class AbstractTestTopology {
     }
 
     this.topologyName = cmd.getOptionValue(TOPOLOGY_OPTION);
+    this.httpServerResultsBaseUrl = cmd.getOptionValue(RESULTS_URL_OPTION);
     this.httpServerResultsUrl =
-        pathAppend(cmd.getOptionValue(RESULTS_URL_OPTION), this.topologyName);
+        pathAppend(this.httpServerResultsBaseUrl, this.topologyName);
     this.httpServerStateUrl =
         pathAppend(cmd.getOptionValue(STATE_URL_OPTION), this.topologyName);
     this.stateUpdateToken = cmd.getOptionValue(STATE_UPDATE_TOKEN);

@@ -37,6 +37,7 @@ import org.apache.heron.api.generated.TopologyAPI;
 import org.apache.heron.api.spout.IRichSpout;
 import org.apache.heron.api.topology.BoltDeclarer;
 import org.apache.heron.api.topology.IStatefulComponent;
+import org.apache.heron.api.topology.ITwoPhaseStatefulComponent;
 import org.apache.heron.api.topology.SpoutDeclarer;
 import org.apache.heron.api.topology.TopologyBuilder;
 
@@ -46,7 +47,7 @@ public class TestTopologyBuilder extends TopologyBuilder {
   // This variable will be used as input variable for constructor of our aggregator bolt
   // This will determine the location of where our output is directed
   // Could be URL, file location, etc.
-  private final String outputLocation;
+  private String outputLocation;
   private final String stateLocation;
   private final String stateUpdateToken;
   private final SpoutWrapperType spoutWrapperType;
@@ -84,6 +85,11 @@ public class TestTopologyBuilder extends TopologyBuilder {
   }
 
   public BoltDeclarer setBolt(String id, IRichBolt bolt, Number parallelismHint, boolean ackAuto) {
+    if (bolt instanceof ITwoPhaseStatefulComponent) {
+      return super.setBolt(
+          id, new StatefulTwoPCIntegrationTestBolt<>(bolt, ackAuto), parallelismHint);
+    }
+
     if (bolt instanceof IStatefulComponent) {
       return super.setBolt(id, new StatefulIntegrationTestBolt<>(bolt, ackAuto), parallelismHint);
     } else {
@@ -133,7 +139,11 @@ public class TestTopologyBuilder extends TopologyBuilder {
         break;
       case DEFAULT:
       default:
-        if (spout instanceof IStatefulComponent) {
+        if (spout instanceof ITwoPhaseStatefulComponent) {
+          wrappedSpout
+              = new StatefulTwoPCIntegrationTestSpout<>(
+                  spout, maxExecutionCount, topologyStartedUrl);
+        } else if (spout instanceof IStatefulComponent) {
           wrappedSpout
               = new StatefulIntegrationTestSpout<>(spout, maxExecutionCount, topologyStartedUrl);
         } else {
@@ -150,6 +160,10 @@ public class TestTopologyBuilder extends TopologyBuilder {
 
   public void setTerminalBoltClass(String terminalBoltClass) {
     this.terminalBoltClass = terminalBoltClass;
+  }
+
+  public void setOutputLocation(String outputLocation) {
+    this.outputLocation = outputLocation;
   }
 
   // By default, will use AggregatorBolt, which writes to HTTP Server and takes URL as input

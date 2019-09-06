@@ -32,11 +32,11 @@ import org.apache.http.impl.client.HttpClientBuilder;
 /**
  * Utilities for making http calls
  */
-final class HttpUtils {
+public final class HttpUtils {
 
   private HttpUtils() { }
 
-  static int httpJsonPost(String newHttpPostUrl, String jsonData)
+  public static int httpJsonPost(String newHttpPostUrl, String jsonData)
       throws IOException, ParseException {
     HttpClient client = HttpClientBuilder.create().build();
     HttpPost post = new HttpPost(newHttpPostUrl);

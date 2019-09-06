@@ -168,6 +168,11 @@
       "topologyName": "IntegrationTest_StreamletWithKeybyCountAndReduce",
       "classPath": "streamlet_with_keyby_count_and_reduce.StreamletWithKeybyCountAndReduce",
       "expectedResultRelativePath": "streamlet_with_keyby_count_and_reduce/StreamletWithKeybyCountAndReduceResults.json"
+    },
+    {
+      "topologyName": "IntegrationTest_StatefulWithSideEffects",
+      "classPath": "end_to_end_effectively_once.StatefulWithSideEffects",
+      "expectedResultRelativePath": "end_to_end_effectively_once/StatefulWithSideEffectsResults.json"
     }
   ],
   "pythonTopologies": [
